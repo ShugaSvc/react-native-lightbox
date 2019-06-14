@@ -20,14 +20,18 @@ export default class Lightbox extends Component {
       friction:      PropTypes.number,
     }),
     swipeToDismiss:  PropTypes.bool,
+    delay:           PropTypes.number,
+    onDoubleTap:     PropTypes.func,
   };
 
   static defaultProps = {
     swipeToDismiss: true,
+    delay: 400,
     onOpen: () => {},
     didOpen: () => {},
     willClose: () => {},
     onClose: () => {},
+    onDoubleTap: () => null,
   };
 
   state = {
@@ -67,6 +71,7 @@ export default class Lightbox extends Component {
   })
 
   open = () => {
+    this.lastTap = null;
     this._root.measure((ox, oy, width, height, px, py) => {
       this.props.onOpen();
 
@@ -117,6 +122,22 @@ export default class Lightbox extends Component {
     }
   }
 
+  handleDoubleTap= () => {
+    const now = Date.now();
+    if(this.lastTap) {
+        this.openId && clearTimeout(this.openId);
+        if((now - this.lastTap) < this.props.delay) {
+          this.props.onDoubleTap();
+        } else {
+          this.open();
+        }
+        this.lastTap = null;
+    } else {
+      this.lastTap = now;
+      this.openId = setTimeout(this.open, this.props.delay+50)
+    }
+  }
+
   render() {
     // measure will not return anything useful if we dont attach a onLayout handler on android
     return (
@@ -128,7 +149,7 @@ export default class Lightbox extends Component {
         <Animated.View style={{opacity: this.state.layoutOpacity}}>
           <TouchableHighlight
             underlayColor={this.props.underlayColor}
-            onPress={this.open}
+            onPress={this.handleDoubleTap}
           >
             {this.props.children}
           </TouchableHighlight>
